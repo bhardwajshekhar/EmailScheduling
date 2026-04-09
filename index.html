@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <title>Plum Reports - Email Scheduling</title>
+    <style>
+        :root {
+            --header-bg: #0f172a;
+            --breadcrumb-bg: #f8fafc;
+            --border-color: #e2e8f0;
+            --link-color: #9f1239; 
+            --button-blue: #3b82f6; /* Lighter, modern blue matching image */
+            --text-main: #1e293b;
+            --text-secondary: #64748b;
+            --primary: #3b82f6; /* Modern Blue */
+            --primary-light: #60a5fa;
+            --primary-dark: #2563eb;
+            --danger: #ef4444;
+            --success: #10b981;
+            --plum-color: #831843;
+            --bg-light: #f8fafc;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-main);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            background: #0f172a;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            color: white;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        }
+
+        .nav-left { display: flex; align-items: center; gap: 20px; }
+        .nav-icon-box { display: flex; align-items: center; font-size: 18px; }
+        .my-apps { display: flex; align-items: center; cursor: pointer; font-size: 13px; }
+        .my-apps::after { content: '▼'; font-size: 8px; margin-left: 5px; }
+        .zip-reports-brand { display: flex; align-items: center; gap: 8px; font-size: 13px; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 15px; }
+        .nav-right { display: flex; align-items: center; gap: 10px; }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;
+            display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;
+        }
+        .logout-btn:hover { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.3); }
+
+        /* Breadcrumbs */
+        .breadcrumb-bar { background: white; padding: 8px 16px; border-bottom: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); }
+        .breadcrumb-bar span { margin: 0 5px; }
+        .breadcrumb-active { color: var(--link-color); font-weight: 600; }
+        .breadcrumb-link { color: var(--text-main); cursor: pointer; transition: color 0.2s; }
+        .breadcrumb-link:hover { color: var(--link-color); text-decoration: underline; }
+
+        /* Content Area */
+        .content-container { padding: 16px; }
+
+        .card {
+            background: white; border-radius: 10px; min-height: 80vh; padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02); border: 1px solid var(--border-color);
+        }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+
+        /* Multi-Screen Navigation Styles */
+        .view-section { display: none; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Screen 1: App Settings Grid */
+        .app-settings-header { padding: 10px 20px 20px 20px; display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: var(--text-main); }
+        .app-grid { display: flex; flex-wrap: wrap; gap: 20px; padding: 0 20px; }
+        .app-card { background: white; border-radius: 12px; width: 130px; height: 130px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border-color); transition: all 0.2s ease; }
+        .app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); border-color: #cbd5e1; }
+        .app-icon { font-size: 42px; color: var(--plum-color); position: relative; }
+        .app-icon .badge { position: absolute; top: 0; right: -5px; background: #22c55e; color: white; font-size: 10px; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; }
+        .app-name { font-size: 12px; font-weight: 600; color: var(--text-main); text-align: center; }
+
+        /* Screen 2: Workflow Settings */
+        .workflow-header-banner { background: white; padding: 16px 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .workflow-header-banner h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main); }
+        .workflow-subtitle { font-size: 13px; color: var(--text-secondary); padding: 0 20px; margin-bottom: 20px; }
+        .settings-card { display: flex; align-items: center; gap: 16px; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px 20px; margin: 0 20px; width: 380px; cursor: pointer; transition: all 0.2s ease; }
+        .settings-card:hover { border-color: var(--plum-color); box-shadow: 0 4px 12px rgba(131, 24, 67, 0.08); background: #fffbfa; }
+        .settings-icon { font-size: 26px; color: var(--text-secondary); background: #f1f5f9; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .settings-info h3 { margin: 0 0 4px 0; font-size: 14px; color: var(--text-main); font-weight: 700; }
+        .settings-info p { margin: 0; font-size: 12px; color: var(--text-secondary); }
+
+        /* Existing Email Scheduling Main Screen (Screen 3) */
+        .btn-add { background: var(--primary-dark); color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; }
+        .btn-add:hover { background: var(--primary); }
+        .search-box { position: relative; display: flex; align-items: center; }
+        .search-box input { border: 1px solid var(--border-color); padding: 8px 28px 8px 12px; border-radius: 6px; font-size: 13px; width: 200px; background: white; transition: all 0.2s ease; }
+        .search-box input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .print-icon { border: 1px solid var(--border-color); padding: 6px 9px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); margin-left: 8px; transition: all 0.2s ease; }
+        .print-icon:hover { background: var(--breadcrumb-bg); border-color: var(--primary); color: var(--primary); }
+
+        table { width: 100%; border-collapse: collapse; border: 1px solid var(--border-color); }
+        th { background: #f8fafc; text-align: center !important; padding: 12px 14px; font-size: 12px; font-weight: 600; color: var(--text-main); border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); color: var(--text-main); }
+        tr:hover { background-color: #f0f4f8; }
+        .report-link { color: var(--primary-dark); font-weight: 600; text-decoration: none; cursor: pointer; transition: all 0.2s ease; }
+        .report-link:hover { color: var(--primary); text-decoration: underline; }
+
+        .pagination-container { display: flex; justify-content: flex-end; align-items: center; margin-top: 14px; gap: 8px; color: var(--text-secondary); font-size: 13px; }
+        .page-nums { display: flex; gap: 4px; align-items: center; }
+        .page-box { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; font-weight: 500; background: white; }
+        .page-box:hover, .page-box.active { border-color: var(--primary); color: var(--primary); }
+        .page-box.active { background: var(--primary-dark); color: white; border-color: var(--primary-dark); }
+        .page-arrow { cursor: pointer; padding: 0 6px; }
+        .page-size-selector { border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; background: white; cursor: pointer; }
+
+        /* Configuration Full Screen Page - High Polish */
+        #configModalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #f4f6f8; z-index: 2000; flex-direction: column; }
+        #configModalOverlay.visible { display: flex; }
+
+        .task-config-header { background: white; border-bottom: 1px solid var(--border-color); padding: 12px 16px; display: flex; align-items: center; justify-content: flex-end; gap: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .status-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.3px; }
+
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: 0.3s ease; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s ease; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input:checked + .slider { background: var(--success); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .back-btn { background: var(--primary); border: none; font-size: 13px; cursor: pointer; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 600; transition: all 0.2s ease; }
+        .back-btn:hover { background: var(--primary-dark); }
+
+        /* 3-Column Layout */
+        .task-config-content { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 20px; padding: 24px; overflow-y: auto; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%; box-sizing: border-box;}
+        
+        .config-column { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; overflow-y: auto; max-height: calc(100vh - 100px); box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        
+        /* Modern Header styling matching the image */
+        .column-header { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--primary); }
+        .column-number { font-size: 15px; font-weight: 700; color: var(--primary); }
+        .column-title { font-size: 14px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.3px; }
+
+        .config-column label:not(.checkbox-item):not(.switch):not(.summary-section-label) { 
+            display: block; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 6px; margin-top: 14px; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .config-column label:first-of-type { margin-top: 0; }
+        
+        /* Red asterisk specifically matching the design */
+        .req-star { color: #ef4444; margin-left: 2px; }
+
+        /* Crisper inputs */
+        .uniform-input { 
+            border: 1px solid #cbd5e1; width: 100%; box-sizing: border-box; background-color: #fff; 
+            height: 36px; padding: 0 12px; border-radius: 4px; font-size: 13px; color: var(--text-main);
+            transition: all 0.2s ease;
+        }
+        .uniform-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); outline: none; }
+        .uniform-input:disabled { background-color: #f8fafc; color: #94a3b8; }
+        
+        .delivery-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+        .delivery-col { display: flex; flex-direction: column; }
+
+        /* Solid Blue Pill Add Button */
+        .btn-add-report { 
+            width: 100%; background: var(--primary); color: white; border: none; padding: 10px; 
+            border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer; margin: 12px 0; 
+            text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s ease; display: flex; justify-content: center; align-items: center; gap: 6px;
+        }
+        .btn-add-report:hover { background: var(--primary-dark); }
+
+        .section-label { display: block; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 8px; margin-top: 16px; text-transform: uppercase; }
+        .selected-reports-box { border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; background: #f8fafc; }
+
+        /* Full width Buttons for Summary */
+        .summary-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+        .btn-cancel, .btn-save { padding: 12px; font-size: 13px; border-radius: 4px; cursor: pointer; font-weight: 700; text-transform: uppercase; text-align: center; width: 100%; box-sizing: border-box; transition: all 0.2s ease;}
+        .btn-cancel { background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; }
+        .btn-cancel:hover { background: #f1f5f9; border-color: #94a3b8; }
+        .btn-save { background: var(--primary); color: white; border: none; }
+        .btn-save:hover { background: var(--primary-dark); }
+
+        /* Enhanced Selected Report Item to perfectly match the screenshot */
+        .selected-report-item {
+            background: #ffffff; border: 1px solid #e2e8f0; padding: 14px; border-radius: 6px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .selected-report-info { flex: 1; }
+        .selected-report-module { font-weight: 600; color: #1e293b; font-size: 13px; margin-bottom: 4px; }
+        .selected-report-sub { font-size: 12px; color: #64748b; margin-bottom: 4px;}
+        .selected-report-loc { font-size: 11px; color: var(--primary-dark); font-weight: 500; }
+        
+        .btn-remove-report { 
+            background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; 
+            padding: 6px 16px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn-remove-report:hover { background: #fee2e2; border-color: #fca5a5; }
+
+        /* Email Autocomplete */
+        .email-input-wrapper { position: relative; }
+        .email-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-top: none; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .email-suggestions.show { display: block; }
+        .email-suggestion-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+        .email-suggestion-item:hover { background: #f8fafc; color: var(--primary-dark); }
+
+        .summary-table { width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+        .summary-table th { background: #f8fafc; padding: 12px; border-bottom: 1px solid var(--border-color); text-align: center; color: #475569; font-weight: 600; }
+        .summary-table td { padding: 12px; border-bottom: 1px solid var(--border-color); text-align: center; }
+
+        .checkbox-row { display: flex; gap: 30px; margin-top: 6px;}
+        .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500 !important; cursor: pointer; color: #1e293b; text-transform: none !important;}
+        .checkbox-item input[type="radio"], .checkbox-item input[type="checkbox"] { margin: 0; width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer; }
+        
+        .action-cell { display: flex; gap: 15px; justify-content: center; align-items: center; }
+        .icon-btn { cursor: pointer; display: flex; align-items: center; transition: transform 0.1s ease; }
+        .icon-btn:hover { transform: scale(1.1); }
+        .icon-edit { stroke: var(--primary-dark); fill: none; }
+        .icon-delete { stroke: #dc2626; fill: none; }
+
+        .email-editor-container { border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; margin-top: 5px; }
+        .editor-toolbar { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 6px; display: flex; gap: 4px; align-items: center; }
+        .tool-btn { background: white; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 6px; cursor: pointer; font-size: 12px; color: #475569; min-width: 26px; height: 26px; display:flex; align-items:center; justify-content:center; transition: all 0.2s ease; }
+        .tool-btn:hover { background: #f1f5f9; border-color: var(--primary); color: var(--primary); }
+        .editor-content { min-height: 120px; padding: 12px; outline: none; font-size: 13px; background: white; color: var(--text-main); font-family: 'Segoe UI', sans-serif; line-height: 1.6; }
+
+        .filter-pill { border: 1px solid var(--border-color); background: #ffffff; color: var(--text-secondary); padding: 6px 20px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; height: 34px; font-weight: 600; transition: all 0.2s ease; }
+        .filter-pill:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+        
+        .header-top-row { position: relative; display: flex; justify-content: center; align-items: center; min-height: 40px; width: 100%; }
+        .card-title { position: absolute; left: 0; font-size: 22px; font-weight: 700; margin: 0; }
+        .header-top-row > div:last-child { position: absolute; right: 0; }
+        .header-bottom-row { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 8px; }
+
+        .filter-dropdown { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 500px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 3000; margin-top: 10px; }
+        .filter-header { display: flex; justify-content: space-between; padding: 16px 18px 0; }
+        .filter-body { display: flex; gap: 20px; padding: 14px 18px; border-bottom: 1px solid var(--border-color); }
+        .filter-col { flex: 1; border-right: 1px solid var(--border-color); padding-right: 10px; }
+        .filter-col:last-child { border-right: none; }
+        .filter-title { color: var(--primary-dark); font-weight: 700; font-size: 14px; margin-bottom: 10px; text-decoration: underline; }
+        .filter-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 500; }
+        .filter-footer { padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 0 0 12px 12px; }
+        .btn-pill-clear { background: white; color: var(--text-main); border: 1px solid #cbd5e1; padding: 6px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+        .btn-pill-apply { background: var(--primary); color: white; border: none; padding: 6px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+
+        .table-icons { margin-left: 6px; font-size: 11px; color: var(--text-secondary); }
+        .sort-icon { margin-right: 4px; cursor: pointer; }
+        
+        table th:nth-child(1), table td:nth-child(1){ width: 14%; }
+        table th:nth-child(2), table td:nth-child(2){ width: 24%; text-align: left !important; }
+        table th:nth-child(3), table td:nth-child(3){ width: 12%; text-align:center;}
+        table th:nth-child(4), table td:nth-child(4){ width: 10%; text-align:center;}
+        table th:nth-child(5), table td:nth-child(5){ width: 12%; text-align:center;}
+        table th:nth-child(6), table td:nth-child(6){ width: 12%; text-align:center;}
+        table th:nth-child(7), table td:nth-child(7){ width: 10%; text-align:center;}
+        table th:nth-child(8), table td:nth-child(8){ width: 6%; text-align:center;}
+
+        .date-input-wrapper { position: relative; }
+        .date-input-wrapper input { padding-right: 35px; }
+        .calendar-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--primary); pointer-events: none; }
+
+        /* Custom Report Dropdown Styles */
+        .custom-dropdown-container { position: relative; }
+        .custom-dropdown-btn { background: #fff; padding-right: 12px; }
+        .custom-dropdown-panel { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; margin-top: 4px; max-height: 250px; overflow-y: auto; }
+        .custom-dropdown-panel.show { display: block; }
+        .dropdown-search { padding: 10px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; background: #f8fafc; z-index: 1; }
+        .dropdown-search input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box; background: #fff; }
+        .report-list-item { padding: 10px 15px; cursor: pointer; font-size: 13px; color: #1e293b; transition: background-color 0.1s, color 0.1s; border-bottom: 1px solid #f1f5f9;}
+        .report-list-item:last-child { border-bottom: none; }
+        .report-list-item:hover, .report-list-item.selected { background-color: var(--primary); color: white; }
+
+        .email-container { border: 1px solid #cbd5e1; padding: 4px 6px; border-radius: 4px; display: flex; flex-wrap: wrap; gap: 4px; min-height: 36px; align-content: flex-start; background: white; transition: all 0.2s ease; box-sizing: border-box; }
+        .email-container:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .email-tag { background: #eff6ff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: flex; align-items: center; gap: 6px; color: var(--primary-dark); font-weight: 500; border: 1px solid #bfdbfe;}
+        .email-tag span { cursor: pointer; color: #60a5fa; font-weight: bold; font-size: 14px; line-height: 1; }
+        .email-tag span:hover { color: var(--primary-dark); }
+        .email-input { border: none !important; flex: 1; min-width: 120px; outline: none; padding: 2px !important; font-size: 13px; background: transparent; height: 24px; color: var(--text-main); }
+
+        #deleteModalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .delete-modal { background: white; border-radius: 8px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 400px; text-align: center; animation: slideUp 0.2s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .delete-header { font-size: 18px; font-weight: 700; color: #dc2626; margin: 0 0 12px 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .delete-body { font-size: 14px; color: #475569; margin: 0 0 24px 0; line-height: 1.5; }
+        .delete-footer { display: flex; gap: 12px; justify-content: center; }
+        .delete-footer button { padding: 10px 24px; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; width: 120px; }
+        #deleteModalOverlay .btn-cancel { background: white; color: #1e293b; border: 1px solid #cbd5e1; }
+        #deleteModalOverlay .btn-cancel:hover { background: #f1f5f9; }
+        #confirmDeleteBtn { background: #ef4444; color: white; }
+        #confirmDeleteBtn:hover { background: #dc2626; }
+        
+        .repeat-box { background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:6px; margin-bottom:15px; margin-top: 4px;}
+        .end-box { background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:6px; margin-bottom:15px; display:flex; flex-direction:column; gap:12px; margin-top: 4px;}
+
+    </style>
+</head>
+<body>
+
+    <div class="top-nav">
+        <div class="nav-left">
+            <div class="nav-icon-box">⚙️</div>
+            <div class="my-apps">My Apps</div>
+            <div class="zip-reports-brand">
+                <span>↩️</span> Plum Reports
+            </div>
+        </div>
+        <div class="nav-right">
+            <button class="logout-btn">⏻ Logout</button>
+            <div class="locked-msg">app(s) locked.</div>
+        </div>
+    </div>
+
+    <div id="screen-apps" class="view-section" style="display: block;">
+        <div class="breadcrumb-bar">
+            Manage Account <span>&gt;</span> <span class="breadcrumb-active">App Settings</span>
+        </div>
+        
+        <div class="app-settings-header">
+            <span style="color: #f43f5e; font-size: 20px;">⚙️</span> App Settings
+        </div>
+
+        <div class="app-grid">
+            <div class="app-card">
+                <div class="app-icon">🖥️<span class="badge">✔</span></div>
+                <div class="app-name">Plum POS</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">☑️</div>
+                <div class="app-name">Plum Checklist</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">⏱️</div>
+                <div class="app-name">Plum Clock</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">📈<span class="badge">✔</span></div>
+                <div class="app-name">Plum Forecasting</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">H<span class="badge" style="background:#8b5cf6;">✔</span></div>
+                <div class="app-name">Plum HACCP</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">📦<span class="badge">✔</span></div>
+                <div class="app-name">Plum Inventory</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">🛒</div>
+                <div class="app-name">Supplier Ordering</div>
+            </div>
+            
+            <div class="app-card" onclick="goToScreen('workflow')">
+                <div class="app-icon">📊<span class="badge">✔</span></div>
+                <div class="app-name">Plum Reports</div>
+            </div>
+
+            <div class="app-card">
+                <div class="app-icon">👨‍🍳</div>
+                <div class="app-name">Plum Prep & Pull</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">📅<span class="badge">✔</span></div>
+                <div class="app-name">Plum Schedule</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">🎵</div>
+                <div class="app-name">Plum Tunes</div>
+            </div>
+            <div class="app-card">
+                <div class="app-icon">⚙️</div>
+                <div class="app-name">Workflow Settings</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-workflow" class="view-section">
+        <div class="breadcrumb-bar">
+            Manage Account <span>&gt;</span> <span class="breadcrumb-link" onclick="goToScreen('apps')">App Settings</span> <span>&gt;</span> <span class="breadcrumb-active">Workflow Settings</span>
+        </div>
+        
+        <div class="workflow-header-banner">
+            <span style="color: #f43f5e; font-size: 20px;">⏱️</span>
+            <h2>Global Settings</h2>
+        </div>
+        
+        <p class="workflow-subtitle">You can configure your organization's Global Settings from here only.</p>
+
+        <div class="settings-card" onclick="goToScreen('main')">
+            <div class="settings-icon">📝</div>
+            <div class="settings-info">
+                <h3>Email Scheduling Setup</h3>
+                <p>Manage Your Reports Email Scheduling</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="screen-main" class="view-section">
+        <div class="breadcrumb-bar">
+            Manage Account <span>&gt;</span> <span class="breadcrumb-link" onclick="goToScreen('apps')">App Settings</span> <span>&gt;</span> <span class="breadcrumb-link" onclick="goToScreen('workflow')">Workflow Settings</span> <span>&gt;</span> <span class="breadcrumb-active">Email Scheduling setting</span>
+        </div>
+
+        <div class="content-container">
+            <div class="card">
+                <div class="card-header" style="display: block;"> 
+                    <div class="header-top-row">
+                        <div class="card-title">Email Scheduling setting</div>
+                        <div style="position: relative;">
+                            <button class="filter-pill" onclick="toggleFilterDropdown()">
+                                Filter <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            </button>
+                            <div id="inlineFilter" class="filter-dropdown">
+                                <div class="filter-header">
+                                    <span></span> <span onclick="toggleFilterDropdown()" style="color: #2563eb; cursor: pointer; font-weight: bold;">ⓧ</span>
+                                </div>
+                                <div class="filter-body">
+                                    <div class="filter-col">
+                                        <div class="filter-title">Modules</div>
+                                        <label class="filter-item"><input type="checkbox" id="modAll" onchange="checkAll('moduleFilters', this.checked)" checked> Show All</label>
+                                        <div id="moduleFilters">
+                                            <label class="filter-item"><input type="checkbox" value="Sales" checked> Sales</label>
+                                            <label class="filter-item"><input type="checkbox" value="Labor" checked> Labor</label>
+                                            <label class="filter-item"><input type="checkbox" value="Food" checked> Food</label>
+                                            <label class="filter-item"><input type="checkbox" value="Forecasting" checked> Forecasting</label>
+                                        </div>
+                                    </div>
+                                    <div class="filter-col">
+                                        <div class="filter-title">Frequency</div>
+                                        <label class="filter-item"><input type="checkbox" id="freqAll" onchange="checkAll('freqFilters', this.checked)" checked> Show All</label>
+                                        <div id="freqFilters">
+                                            <label class="filter-item"><input type="checkbox" value="Daily" checked> Daily</label>
+                                            <label class="filter-item"><input type="checkbox" value="Weekly" checked> Weekly</label>
+                                            <label class="filter-item"><input type="checkbox" value="Monthly" checked> Monthly</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="filter-footer">
+                                    <button class="btn-pill-clear" onclick="setFilters(false)">Clear</button>
+                                    <button class="btn-pill-apply" onclick="applyFilters()">Apply</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            <button class="btn-add" onclick="openAddNew()">+ Add</button>
+                        </div>
+                    </div>
+                    
+                    <div class="header-bottom-row">
+                        <div class="search-box">
+                            <input type="text" placeholder="Search keyword">
+                        </div>
+                        <div class="print-icon" onclick="printReport()">🖨️</div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Module <span class="table-icons"><span class="sort-icon">⇅</span></span></th>
+                            <th>Schedule Name <span class="table-icons"><span class="sort-icon">⇅</span></span></th>
+                            <th>Frequency <span class="table-icons"><span class="sort-icon">⇅</span></span></th>
+                            <th>Time <span class="table-icons"><span class="sort-icon">⇅</span></span></th>
+                            <th>Start Date <span class="table-icons"><span class="sort-icon">⇅</span></span></th>
+                            <th>End Date <span class="table-icons"><span class="sort-icon">⇅</span></span></th>
+                            <th>Status <span class="table-icons"><span class="sort-icon">⇅</span></span></th>
+                            <th style="border-right:none;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTableBody">
+                        </tbody>
+                </table>
+
+                <div class="pagination-container">
+                    <div class="page-arrow">«</div>
+                    <div class="page-arrow">&lt;</div>
+                    <div class="page-nums">
+                        <div class="page-box active">1</div>
+                        <div class="page-box">2</div>
+                    </div>
+                    <div class="page-arrow">&gt;</div>
+                    <div class="page-arrow">»</div>
+                    <select class="page-size-selector">
+                        <option>20</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="configModalOverlay">
+        <div class="task-config-header" style="justify-content: flex-end;">
+            <div class="header-right">
+                <label class="status-label">STATUS (ACTIVE/INACTIVE)</label>
+                <label class="switch">
+                    <input type="checkbox" id="confStatus" checked>
+                    <span class="slider"></span>
+                </label>
+                <button class="back-btn" onclick="closeConfigModal()">← BACK</button>
+            </div>
+        </div>
+
+        <div class="task-config-content">
+            <div class="config-column config-column-left">
+                <div class="column-header">
+                    <span class="column-number">1.</span>
+                    <span class="column-title">REPORT SELECTION</span>
+                </div>
+
+                <div class="form-group custom-dropdown-container" id="reportDropdownMainContainer">
+                    <label>REPORT MAIN <span class="req-star">*</span></label>
+                    <div class="custom-dropdown-btn uniform-input" onclick="toggleReportDropdown()" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                        <span id="reportDropdownText" style="color: #94a3b8;">Select Report</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="reportDropdownIcon"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                    <div class="custom-dropdown-panel" id="reportDropdownPanel">
+                        <div class="dropdown-search">
+                            <input type="text" placeholder="Search report..." onkeyup="filterReports(this.value)">
+                        </div>
+                        <div id="reportListContainer" style="padding-bottom: 5px;"></div>
+                    </div>
+                    <input type="hidden" id="confReport" value="">
+                </div>
+
+                <div class="form-group custom-dropdown-container" id="locationDropdownContainer" style="margin-top: 14px;">
+                    <label>SELECT FRANCHISE / STORE <span class="req-star">*</span></label>
+                    <div class="custom-dropdown-btn uniform-input" onclick="toggleLocationDropdown()" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                        <span id="locationDropdownText" style="color: #1e293b;">Corporate (10)</span>
+                        <span class="dropdown-arrow" style="font-size:10px; color:#94a3b8;">▼</span>
+                    </div>
+                    <div class="custom-dropdown-panel" id="locationDropdownPanel">
+                        <div class="dropdown-search">
+                            <input type="text" placeholder="Search..." onkeyup="filterLocations(this.value)">
+                        </div>
+                        <div class="dropdown-tree">
+                            <div class="tree-parent" style="display:flex; align-items:center; padding: 8px 12px; gap: 8px; border-bottom: 1px solid #f1f5f9;">
+                                <span class="tree-toggle" onclick="toggleTree(this)" style="cursor:pointer; font-size:10px; width: 12px; text-align:center; color: var(--primary);">▼</span>
+                                <label class="checkbox-item" style="margin:0;"><input type="checkbox" id="corpAll" onchange="toggleCorpAll(this)" checked> <span style="color:#1e293b; font-size:13px; font-weight:600;">Corporate (10)</span></label>
+                            </div>
+                            <div class="tree-children" id="locChildren" style="padding: 8px 12px 8px 36px; display:flex; flex-direction:column; gap:8px;">
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's San Jose #3156" checked> Famous Dave's San Jose #3156</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's Gilroy #3101" checked> Famous Dave's Gilroy #3101</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's Alameda #3232" checked> Famous Dave's Alameda #3232</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's Fresno #3105" checked> Famous Dave's Fresno #3105</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's Redlands #3135" checked> Famous Dave's Redlands #3135</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's Hayward #3205" checked> Famous Dave's Hayward #3205</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's Lab" checked> Famous Dave's Lab</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's Bakersfield #3155" checked> Famous Dave's Bakersfield #3155</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Famous Dave's Rancho #3096" checked> Famous Dave's Rancho #3096</label>
+                                <label class="checkbox-item"><input type="checkbox" class="loc-cb" value="Sales Demo Store" checked> Sales Demo Store</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="addReportToSelected()" class="btn-add-report">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    ADD REPORT TO SELECTION
+                </button>
+
+                <div class="currently-selected">
+                    <label class="section-label">CURRENTLY SELECTED</label>
+                    <div id="selectedReportsList" class="selected-reports-box">
+                        <div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 30px 10px;">No reports selected. Add reports from above.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-column config-column-middle">
+                <div class="column-header">
+                    <span class="column-number">2.</span>
+                    <span class="column-title">DELIVERY SETUP</span>
+                </div>
+
+                <div class="delivery-row">
+                    <div class="delivery-col">
+                        <label>START DATE <span class="req-star">*</span></label>
+                        <div class="date-input-wrapper">
+                            <input type="text" id="confStart" class="uniform-input">
+                            <svg class="calendar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </div>
+                    </div>
+                    <div class="delivery-col">
+                        <label>TRIGGER TIME (EST) <span class="req-star">*</span></label>
+                        <input type="time" id="confTime" class="uniform-input">
+                    </div>
+                </div>
+
+                <label class="section-label">REPEAT</label>
+                <select id="confFreq" class="uniform-input" onchange="toggleFreqOpts()">
+                    <option value="Daily">Daily</option>
+                    <option value="Weekly" selected>Weekly</option>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Yearly">Yearly</option>
+                </select>
+
+                <div id="repeatOptionsBox" class="repeat-box">
+                    <div id="dailyOpts" style="display:none;">
+                        <label class="checkbox-item" style="margin-bottom:10px;"><input type="radio" name="dailyType" value="everyDay" checked> Every day</label>
+                        <label class="checkbox-item" style="margin-bottom:10px;"><input type="radio" name="dailyType" value="everyWeekday"> Every weekday</label>
+                        <label class="checkbox-item" style="display:flex; align-items:center; gap:6px;">
+                            <input type="radio" name="dailyType" value="everyXDays"> Every <input type="number" id="dailyDays" style="width:50px; text-align:center;" class="uniform-input" value="2"> days
+                        </label>
+                    </div>
+
+                    <div id="weeklyOpts" style="display:block;">
+                        <div style="margin-bottom:12px; display:flex; align-items:center;">
+                            <label class="checkbox-item" style="display:inline-flex; margin-right: 8px;"><input type="radio" name="weeklyType" value="everyDay" checked> Every</label>
+                            <select id="weeklyDaySelect" class="uniform-input" style="width:120px;">
+                                <option selected>Sunday</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                            <label class="checkbox-item" style="margin:0;"><input type="radio" name="weeklyType" value="everyXWeeks"> Every</label>
+                            <input type="number" id="weeklyWeeks" style="width:50px; text-align:center;" class="uniform-input" value="2"> <span style="font-size: 13px; color: var(--text-main);">week(s) on</span>
+                        </div>
+                        <div style="display:flex; gap:16px; padding-left:26px; flex-wrap:wrap;">
+                            <label class="checkbox-item"><input type="checkbox" value="Sun"> Sun</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Mon"> Mon</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Tue"> Tue</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Wed"> Wed</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Thu" checked> Thu</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Fri"> Fri</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Sat"> Sat</label>
+                        </div>
+                    </div>
+
+                    <div id="monthlyOpts" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                            <label class="checkbox-item" style="margin:0;"><input type="radio" name="monthlyType" value="dayX" checked> Day</label>
+                            <input type="number" id="monthlyDay" style="width:50px; text-align:center;" class="uniform-input" value="9">
+                            <span style="font-size:13px; color: var(--text-main);">of every</span>
+                            <input type="number" id="monthlyMonths1" style="width:50px; text-align:center;" class="uniform-input" value="1">
+                            <span style="font-size:13px; color: var(--text-main);">month(s)</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label class="checkbox-item" style="margin:0;"><input type="radio" name="monthlyType" value="theX"> The</label>
+                            <select id="monthlyOrdinal" class="uniform-input" style="width:80px;"><option>first</option><option>second</option><option>third</option><option>fourth</option><option>last</option></select>
+                            <select id="monthlyDayName" class="uniform-input" style="width:110px;"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+                            <span style="font-size:13px; color: var(--text-main);">of every</span>
+                            <input type="number" id="monthlyMonths2" style="width:50px; text-align:center;" class="uniform-input" value="1">
+                            <span style="font-size:13px; color: var(--text-main);">month(s)</span>
+                        </div>
+                    </div>
+
+                    <div id="yearlyOpts" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                            <label class="checkbox-item" style="margin:0;"><input type="radio" name="yearlyType" value="everyYearOn" checked> Every year on</label>
+                            <select id="yearlyMonth1" class="uniform-input" style="width:110px;"><option>January</option><option>February</option><option>March</option><option selected>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select>
+                            <input type="number" id="yearlyDay1" style="width:50px; text-align:center;" class="uniform-input" value="9">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label class="checkbox-item" style="margin:0;"><input type="radio" name="yearlyType" value="theXOf"> The</label>
+                            <select id="yearlyOrdinal" class="uniform-input" style="width:80px;"><option selected>first</option><option>second</option><option>third</option><option>fourth</option><option>last</option></select>
+                            <select id="yearlyDayName" class="uniform-input" style="width:110px;"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+                            <span style="font-size:13px; color: var(--text-main);">of every</span>
+                            <select id="yearlyMonth2" class="uniform-input" style="width:110px;"><option>January</option><option>February</option><option>March</option><option selected>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="section-label">END <span class="req-star">*</span></label>
+                <div id="endOptionsBox" class="end-box">
+                    <label class="checkbox-item" style="margin:0;"><input type="radio" name="endType" value="noEnd" checked onchange="toggleEndInputs()"> No end date</label>
+                    
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label class="checkbox-item" style="margin:0;"><input type="radio" name="endType" value="endAfter" onchange="toggleEndInputs()"> End after</label>
+                        <input type="number" id="endOccurrences" style="width:70px; text-align:center;" class="uniform-input" value="1" disabled> <span style="font-size:13px; color: var(--text-main);">occurrence(s)</span>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label class="checkbox-item" style="margin:0;"><input type="radio" name="endType" value="endBy" onchange="toggleEndInputs()"> End by</label>
+                        <div class="date-input-wrapper" style="width:140px;">
+                            <input type="text" id="confEnd" class="uniform-input" placeholder="M/D/YYYY" disabled>
+                            <svg class="calendar-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="section-label">SUBJECT <span class="req-star">*</span></label>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <input type="text" id="confSubject" class="uniform-input" placeholder="Enter subject">
+                </div>
+
+                <label class="section-label">RECIPIENTS (TO) <span class="req-star">*</span></label>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <div class="email-input-wrapper">
+                        <div class="email-container" id="toEmails">
+                            <input type="text" class="email-input" id="toEmailInput" onkeydown="handleEmailKey(event, 'toEmails')" oninput="showEmailSuggestions(event)">
+                        </div>
+                        <div class="email-suggestions" id="emailSuggestions"></div>
+                    </div>
+                </div>
+
+                <label class="section-label">CC</label>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <div class="email-container" id="ccEmails">
+                        <input type="text" class="email-input" onkeydown="handleEmailKey(event, 'ccEmails')">
+                    </div>
+                </div>
+
+                <label class="section-label">BCC</label>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <div class="email-container" id="bccEmails">
+                        <input type="text" class="email-input" onkeydown="handleEmailKey(event, 'bccEmails')">
+                    </div>
+                </div>
+
+                <div class="format-box" style="background: transparent; padding: 0; border: none;">
+                    <label class="section-label">FORMAT</label>
+                    <div class="checkbox-row">
+                        <label class="checkbox-item"><input type="checkbox" id="fmtPdf" onchange="updateSummary()"> PDF</label>
+                        <label class="checkbox-item"><input type="checkbox" id="fmtHtml" onchange="updateSummary()"> HTML</label>
+                    </div>
+                </div>
+
+                <label class="section-label" style="margin-top: 24px;">EMAIL BODY</label>
+                <div class="email-editor-container">
+                    <div class="editor-toolbar">
+                        <div class="toolbar-group">
+                            <select class="tool-btn" id="fontStyle" style="width: 80px; font-size: 11px; padding: 2px;" onchange="execCmd('formatBlock', this.value)">
+                                <option value="p">Normal</option>
+                                <option value="h1">Large</option>
+                                <option value="h3">Medium</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="tool-btn" id="btn-bold" onclick="execCmd('bold')"><b>B</b></button>
+                            <button class="tool-btn" id="btn-italic" onclick="execCmd('italic')"><i>I</i></button>
+                            <button class="tool-btn" id="btn-underline" onclick="execCmd('underline')"><u>U</u></button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="tool-btn" id="btn-list" onclick="execCmd('insertUnorderedList')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></button>
+                        </div>
+                        <div class="toolbar-group">
+                            <input type="color" class="color-picker" onchange="execCmd('foreColor', this.value)" title="Text Color" style="height: 24px; width: 24px; padding: 0;">
+                        </div>
+                    </div>
+                    <div id="emailBodyEditor" class="editor-content" contenteditable="true"></div>
+                </div>
+            </div>
+
+            <div class="config-column config-column-right">
+                <div class="column-header">
+                    <span class="column-number">3.</span>
+                    <span class="column-title">SCHEDULE SUMMARY</span>
+                </div>
+
+                <div class="summary-table-container" style="margin-top: 0;">
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>METHOD</th>
+                                <th>RECIPIENTS</th>
+                                <th>FORMATS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Email</td>
+                                <td id="summaryRecipients">-</td>
+                                <td id="summaryFormats">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="summary-actions">
+                    <button class="btn-cancel" onclick="closeConfigModal()">CANCEL</button>
+                    <button class="btn-save" onclick="saveConfiguration()">SAVE CONFIGURATION</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteModalOverlay">
+        <div class="delete-modal">
+            <div class="delete-header">Confirm Delete</div>
+            <div class="delete-body" id="deleteMsg"></div>
+            <div class="delete-footer">
+                <button class="btn-cancel" onclick="closeDeleteModal()">No</button>
+                <button class="btn-save" id="confirmDeleteBtn">Yes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SCREEN NAVIGATION LOGIC ---
+        function goToScreen(screenName) {
+            document.getElementById('screen-apps').style.display = 'none';
+            document.getElementById('screen-workflow').style.display = 'none';
+            document.getElementById('screen-main').style.display = 'none';
+            document.getElementById('screen-' + screenName).style.display = 'block';
+        }
+
+        // --- SCHEDULING LOGIC ---
+        let currentReportIndex = -1;
+        let selectedReports = [];
+        let isEditMode = false;
+
+        const moduleData = {
+            "Sales": { "POS Data": ["Discount Report", "Weekly Hourly Report", "Daily Sales Report"], "Menu Analysis": ["Menu Mix Report(View By Items)", "Menu Mix Report(View By Category)"], "Projections": ["PMIX Summary Report", "Employee Sales Summary", "Sales Summary Report", "Sales By Daypart Report", "Sales By Surcharge Report", "Sales by Paid In Out Report"] },
+            "Labor": { "Timekeeping": ["Daily Punch Report", "Ignored Punch Report", "Ignored Break Punch Report"], "Labor Stats": ["Labor Stats Report", "Scheduled Summary Report", "Labor Historical Report", "Labor Hours By Job Code Sundeep_Updatedd"], "Payroll": ["Payroll Report", "Payroll Rollup Report"] },
+            "Food": { "Inventory": ["Inventory Report", "GL COGS Export Rollup Report"], "Orders": ["Ordering and Receiving Summary Report", "Transfer Summary Report"] },
+            "Forecasting": { "Workflow Reports": ["Tlog Viewer Report", "Weekly Budget Variance"], "Sales": ["Sales Projection", "Guest Count Projection"] }
+        };
+
+        function renderReportDropdown() {
+            const container = document.getElementById('reportListContainer');
+            container.innerHTML = '';
+            for (const mod in moduleData) {
+                for (const sub in moduleData[mod]) {
+                    moduleData[mod][sub].forEach(rep => {
+                        const div = document.createElement('div');
+                        div.className = 'report-list-item';
+                        div.textContent = rep;
+                        div.onclick = () => selectReport(rep);
+                        container.appendChild(div);
+                    });
+                }
+            }
+        }
+        
+        function toggleReportDropdown() {
+            const panel = document.getElementById('reportDropdownPanel');
+            panel.classList.toggle('show');
+            const icon = document.getElementById('reportDropdownIcon');
+            if (panel.classList.contains('show')) {
+                icon.innerHTML = '<polyline points="18 15 12 9 6 15"></polyline>'; 
+            } else {
+                icon.innerHTML = '<polyline points="6 9 12 15 18 9"></polyline>'; 
+            }
+        }
+
+        function selectReport(rep) {
+            document.getElementById('reportDropdownText').textContent = rep;
+            document.getElementById('reportDropdownText').style.color = '#1e293b';
+            document.getElementById('confReport').value = rep;
+            toggleReportDropdown(); 
+            
+            document.querySelectorAll('.report-list-item').forEach(el => {
+                if(el.textContent === rep) el.classList.add('selected');
+                else el.classList.remove('selected');
+            });
+        }
+
+        function filterReports(val) {
+            const term = val.toLowerCase();
+            document.querySelectorAll('.report-list-item').forEach(item => {
+                if (item.textContent.toLowerCase().includes(term)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', renderReportDropdown);
+
+        function getReportDetails(reportName) {
+            for (const mod in moduleData) {
+                for (const sub in moduleData[mod]) {
+                    if (moduleData[mod][sub].includes(reportName)) {
+                        return { module: mod, subModule: sub };
+                    }
+                }
+            }
+            return { module: 'Custom', subModule: 'Custom' };
+        }
+
+        function toggleLocationDropdown() {
+            document.getElementById('locationDropdownPanel').classList.toggle('show');
+        }
+
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('locationDropdownContainer');
+            if (container && !container.contains(event.target)) {
+                document.getElementById('locationDropdownPanel').classList.remove('show');
+            }
+            
+            const repContainer = document.getElementById('reportDropdownMainContainer');
+            if (repContainer && !repContainer.contains(event.target)) {
+                const repPanel = document.getElementById('reportDropdownPanel');
+                if(repPanel.classList.contains('show')) {
+                    repPanel.classList.remove('show');
+                    document.getElementById('reportDropdownIcon').innerHTML = '<polyline points="6 9 12 15 18 9"></polyline>';
+                }
+            }
+        });
+
+        function toggleTree(element) {
+            const children = document.getElementById('locChildren');
+            if (children.style.display === 'none') {
+                children.style.display = 'flex';
+                element.textContent = '▼';
+            } else {
+                children.style.display = 'none';
+                element.textContent = '▶';
+            }
+        }
+
+        function toggleCorpAll(checkbox) {
+            const cbs = document.querySelectorAll('.loc-cb');
+            cbs.forEach(cb => cb.checked = checkbox.checked);
+            updateLocationText();
+        }
+
+        function updateLocationText() {
+            const cbs = document.querySelectorAll('.loc-cb:checked');
+            const total = document.querySelectorAll('.loc-cb').length;
+            const textSpan = document.getElementById('locationDropdownText');
+            const corpAll = document.getElementById('corpAll');
+
+            if (cbs.length === total) {
+                textSpan.textContent = `Corporate (${total})`;
+                corpAll.checked = true;
+                corpAll.indeterminate = false;
+            } else if (cbs.length === 0) {
+                textSpan.textContent = 'Select Store...';
+                corpAll.checked = false;
+                corpAll.indeterminate = false;
+            } else {
+                textSpan.textContent = `${cbs.length} Store(s) Selected`;
+                corpAll.checked = false;
+                corpAll.indeterminate = true;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.loc-cb').forEach(cb => {
+                cb.addEventListener('change', updateLocationText);
+            });
+        });
+
+        function filterLocations(val) {
+            const term = val.toLowerCase();
+            document.querySelectorAll('.loc-cb').forEach(cb => {
+                const label = cb.parentElement;
+                if (label.textContent.toLowerCase().includes(term)) {
+                    label.style.display = 'flex';
+                } else {
+                    label.style.display = 'none';
+                }
+            });
+        }
+
+        const emailSuggestions = [
+            'growth-implementations@altametrics.com', 'sonal@altametrics.com', 'tushar@altametrics.com',
+            'magarwal@altametrics.com', 'kunal@altametrics.com', 'sudeer@altametrics.com', 'atul@altametrics.com',
+            'bhoop@altametrics.com', 'vicky@altametrics.com', 'ajay@altametrics.com'
+        ];
+
+        const reportDataStore = {};
+
+        reportDataStore['Schedule Report 1'] = {
+            module: 'Sales', report: 'Discount Report', freq: 'Weekly', time: '10:00', start: '2026-03-11', end: '2027-07-07', 
+            noEndDate: false, subject: 'Automated Report | Discount Report | Weekly', body: '<p>Hi Team,</p><p>Please find attached the <b>Discount Report</b>.<br>This is an automated email generated as part of the scheduled reporting process. The report provides key insights and data relevant to your review.</p><p>If you have any questions or require further details, please feel free to reach out.</p><br><p>Best regards,<br>[Your Name / Team Name]</p>', to: [], cc: [], bcc: [], status: 'Active'
+        };
+        reportDataStore['Schedule Report 2'] = {
+            module: 'Labor', report: 'Daily Punch Report', freq: 'Daily', time: '08:00', start: '2026-04-01', end: '2027-04-01', 
+            noEndDate: false, subject: 'Automated Report | Daily Punch Report | Daily', body: '<p>Hi Team,</p><p>Please find attached the <b>Daily Punch Report</b>.<br>This is an automated email generated as part of the scheduled reporting process. The report provides key insights and data relevant to your review.</p><p>If you have any questions or require further details, please feel free to reach out.</p><br><p>Best regards,<br>[Your Name / Team Name]</p>', to: [], cc: [], bcc: [], status: 'Active'
+        };
+        reportDataStore['Schedule Report 3'] = {
+            module: 'Food', report: 'Inventory Report', freq: 'Monthly', time: '09:30', start: '2026-05-10', end: '2027-05-10', 
+            noEndDate: false, subject: 'Automated Report | Inventory Report | Monthly', body: '<p>Hi Team,</p><p>Please find attached the <b>Inventory Report</b>.<br>This is an automated email generated as part of the scheduled reporting process. The report provides key insights and data relevant to your review.</p><p>If you have any questions or require further details, please feel free to reach out.</p><br><p>Best regards,<br>[Your Name / Team Name]</p>', to: [], cc: [], bcc: [], status: 'Active'
+        };
+
+        function renderMainTable() {
+            const tbody = document.getElementById('reportsTableBody');
+            tbody.innerHTML = '';
+            for(let key in reportDataStore) {
+                const data = reportDataStore[key];
+                const statusHtml = data.status === 'Active' 
+                    ? '<span style="color: #059669; background: #d1fae5; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">Active</span>'
+                    : '<span style="color: #475569; background: #e2e8f0; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">Inactive</span>';
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${data.module}</td>
+                        <td><a href="#" class="report-link" onclick="openDetail('${key}')">${key}</a></td>
+                        <td>${data.freq}</td>
+                        <td style="text-align: center;">${data.time}</td>
+                        <td style="text-align: center;">${data.start}</td>
+                        <td style="text-align: center;">${data.noEndDate ? '-' : (data.end || '-')}</td>
+                        <td style="text-align: center;">${statusHtml}</td>
+                        <td style="border-right: none;">
+                            <div class="action-cell">
+                                <span class="icon-btn" onclick="openDetail('${key}')">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
+                                </span>
+                                <span class="icon-btn" onclick="confirmDelete('${key}', this)">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-delete"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        document.addEventListener('DOMContentLoaded', renderMainTable);
+
+        function closeConfigModal() {
+            document.getElementById('configModalOverlay').classList.remove('visible');
+        }
+
+        function updateDynamicEmailContent() {
+            const freq = document.getElementById('confFreq').value;
+            let reportNames = "[Report Name]";
+            
+            if (selectedReports.length > 0) {
+                reportNames = selectedReports.map(r => r.report).join(', ');
+            }
+            
+            document.getElementById('confSubject').value = `Automated Report | ${reportNames} | ${freq}`;
+            
+            document.getElementById('emailBodyEditor').innerHTML = `
+                <p>Hi Team,</p>
+                <p>Please find attached the <b>${reportNames}</b>.<br>
+                This is an automated email generated as part of the scheduled reporting process. The report provides key insights and data relevant to your review.</p>
+                <p>If you have any questions or require further details, please feel free to reach out.</p>
+                <br>
+                <p>Best regards,<br>
+                [Your Name / Team Name]</p>
+            `;
+        }
+
+        function toggleFreqOpts() {
+            const val = document.getElementById('confFreq').value;
+            document.getElementById('dailyOpts').style.display = (val === 'Daily') ? 'block' : 'none';
+            document.getElementById('weeklyOpts').style.display = (val === 'Weekly') ? 'block' : 'none';
+            document.getElementById('monthlyOpts').style.display = (val === 'Monthly') ? 'block' : 'none';
+            document.getElementById('yearlyOpts').style.display = (val === 'Yearly') ? 'block' : 'none';
+            
+            updateDynamicEmailContent();
+        }
+
+        function toggleEndInputs() {
+            const endType = document.querySelector('input[name="endType"]:checked').value;
+            const occInput = document.getElementById('endOccurrences');
+            const endInput = document.getElementById('confEnd');
+
+            occInput.disabled = (endType !== 'endAfter');
+            endInput.disabled = (endType !== 'endBy');
+            
+            if(endType === 'noEnd'){
+                occInput.value = '';
+                endInput.value = '';
+            }
+        }
+
+        function handleEmailKey(e, containerId) {
+            if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                const container = document.getElementById(containerId);
+                const tag = document.createElement('div');
+                tag.className = 'email-tag';
+                tag.innerHTML = `${e.target.value} <span onclick="this.parentElement.remove(); updateSummary()">&times;</span>`;
+                container.insertBefore(tag, e.target);
+                e.target.value = '';
+                document.getElementById('emailSuggestions').classList.remove('show');
+                updateSummary();
+            }
+        }
+
+        function showEmailSuggestions(e) {
+            const input = e.target.value.toLowerCase();
+            const suggestionsDiv = document.getElementById('emailSuggestions');
+            
+            if (input.length === 0) { suggestionsDiv.classList.remove('show'); return; }
+
+            const filtered = emailSuggestions.filter(email => email.toLowerCase().includes(input));
+            if (filtered.length === 0) { suggestionsDiv.classList.remove('show'); return; }
+
+            suggestionsDiv.innerHTML = filtered.map(email => 
+                `<div class="email-suggestion-item" onclick="selectEmailSuggestion('${email}')">${email}</div>`
+            ).join('');
+            suggestionsDiv.classList.add('show');
+        }
+
+        function selectEmailSuggestion(email) {
+            const input = document.getElementById('toEmailInput');
+            input.value = email;
+            document.getElementById('emailSuggestions').classList.remove('show');
+            const event = new KeyboardEvent('keydown', { key: 'Enter' });
+            input.dispatchEvent(event);
+        }
+
+        let rowToDelete = null; let keyToDelete = null;
+        function confirmDelete(name, element) {
+            rowToDelete = element.closest('tr');
+            keyToDelete = name;
+            document.getElementById('deleteMsg').innerHTML = `Are you sure you want to delete this configuration "${name}"?`;
+            document.getElementById('deleteModalOverlay').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModalOverlay').style.display = 'none';
+            rowToDelete = null; keyToDelete = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+            if (rowToDelete && keyToDelete) {
+                delete reportDataStore[keyToDelete];
+                renderMainTable();
+                closeDeleteModal();
+            }
+        });
+
+        function addReportToSelected() {
+            const report = document.getElementById('confReport').value;
+            const locationText = document.getElementById('locationDropdownText').textContent;
+            const location = locationText === 'Select Store...' ? '' : locationText;
+
+            if (!report) { alert('Please select a Report'); return; }
+            if (!location) { alert('Please select at least one Location'); return; }
+
+            const details = getReportDetails(report);
+            const reportObj = { module: details.module, subModule: details.subModule, report, location };
+            
+            if (selectedReports.find(r => r.report === report && r.location === location)) {
+                alert('This report with the same location is already selected');
+                return;
+            }
+
+            selectedReports.push(reportObj);
+            
+            document.getElementById('confReport').value = "";
+            document.getElementById('reportDropdownText').textContent = "Select Report";
+            document.getElementById('reportDropdownText').style.color = '#94a3b8';
+            document.querySelectorAll('.report-list-item').forEach(el => el.classList.remove('selected'));
+
+            updateSelectedReports();
+            updateDynamicEmailContent();
+        }
+
+        function updateSelectedReports() {
+            const container = document.getElementById('selectedReportsList');
+
+            if (selectedReports.length === 0) {
+                container.innerHTML = '<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 30px 10px;">No reports selected. Add reports from above.</div>';
+                return;
+            }
+
+            container.innerHTML = selectedReports.map((r, idx) => `
+                <div class="selected-report-item">
+                    <div class="selected-report-info">
+                        <div class="selected-report-module">${r.report}</div>
+                        <div class="selected-report-sub">${r.module} → ${r.subModule}</div>
+                        <div class="selected-report-loc">Loc: ${r.location}</div>
+                    </div>
+                    <button class="btn-remove-report" onclick="removeSelectedReport(${idx})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeSelectedReport(idx) {
+            selectedReports.splice(idx, 1);
+            updateSelectedReports();
+            updateDynamicEmailContent();
+        }
+
+        function updateSummary() {
+            const recipients = Array.from(document.querySelectorAll('#toEmails .email-tag')).map(tag => tag.innerText.replace(' ×', '').trim());
+            const formats = [];
+            if (document.getElementById('fmtPdf') && document.getElementById('fmtPdf').checked) formats.push('PDF');
+            if (document.getElementById('fmtHtml') && document.getElementById('fmtHtml').checked) formats.push('HTML');
+
+            const summaryRecipientsEl = document.getElementById('summaryRecipients');
+            const summaryFormatsEl = document.getElementById('summaryFormats');
+            
+            if (summaryRecipientsEl) summaryRecipientsEl.textContent = recipients.length > 0 ? recipients.join(', ') : '-';
+            if (summaryFormatsEl) summaryFormatsEl.textContent = formats.length > 0 ? formats.join(', ') : '-';
+        }
+
+        function openDetail(name) {
+            isEditMode = true;
+            const rows = document.querySelectorAll('table tbody tr');
+            rows.forEach((row, index) => { if (row.cells[1].innerText.trim() === name) currentReportIndex = index; });
+
+            const data = reportDataStore[name] || {};
+
+            document.getElementById('confSubject').value = data.subject || "";
+            document.getElementById('confStatus').checked = (data.status === 'Active');
+            
+            const repVal = data.report || "";
+            document.getElementById('confReport').value = repVal;
+            if(repVal) {
+                document.getElementById('reportDropdownText').textContent = repVal;
+                document.getElementById('reportDropdownText').style.color = '#1e293b';
+                document.querySelectorAll('.report-list-item').forEach(el => {
+                    if(el.textContent === repVal) el.classList.add('selected');
+                    else el.classList.remove('selected');
+                });
+            } else {
+                document.getElementById('reportDropdownText').textContent = "Select Report";
+                document.getElementById('reportDropdownText').style.color = '#94a3b8';
+                document.querySelectorAll('.report-list-item').forEach(el => el.classList.remove('selected'));
+            }
+
+            document.getElementById('confFreq').value = data.freq || "Daily";
+            toggleFreqOpts();
+
+            document.getElementById('confTime').value = data.time || "";
+            document.getElementById('confStart').value = data.start || "";
+            
+            if (data.noEndDate !== false && !data.end) {
+                document.querySelector('input[name="endType"][value="noEnd"]').checked = true;
+            } else if (data.end && data.end !== '-') {
+                document.querySelector('input[name="endType"][value="endBy"]').checked = true;
+                document.getElementById('confEnd').value = data.end;
+            }
+            toggleEndInputs();
+            
+            document.querySelectorAll('#toEmails .email-tag').forEach(tag => tag.remove());
+            if (data.to) data.to.forEach(email => addEmailTag('toEmails', email));
+            
+            document.querySelectorAll('#ccEmails .email-tag').forEach(tag => tag.remove());
+            if (data.cc) data.cc.forEach(email => addEmailTag('ccEmails', email));
+            
+            document.querySelectorAll('#bccEmails .email-tag').forEach(tag => tag.remove());
+            if (data.bcc) data.bcc.forEach(email => addEmailTag('bccEmails', email));
+
+            document.getElementById('emailBodyEditor').innerHTML = data.body || "<p><br></p>";
+            
+            selectedReports = [{
+                module: data.module || 'Sales', subModule: 'Sub', report: data.report || '', location: 'Corporate (10)'
+            }];
+            updateSelectedReports();
+            
+            document.getElementById('corpAll').checked = true;
+            document.querySelectorAll('.loc-cb').forEach(cb => cb.checked = true);
+            updateLocationText();
+            
+            document.getElementById('fmtPdf').checked = false;
+            document.getElementById('fmtHtml').checked = false;
+            
+            updateSummary();
+            document.getElementById('configModalOverlay').classList.add('visible');
+        }
+
+        function openAddNew() {
+            isEditMode = false;
+            
+            document.getElementById('confStatus').checked = true;
+            
+            document.getElementById('confReport').value = "";
+            document.getElementById('reportDropdownText').textContent = "Select Report";
+            document.getElementById('reportDropdownText').style.color = '#94a3b8';
+            document.querySelectorAll('.report-list-item').forEach(el => el.classList.remove('selected'));
+            
+            document.getElementById('corpAll').checked = true;
+            document.querySelectorAll('.loc-cb').forEach(cb => cb.checked = true);
+            updateLocationText();
+            
+            document.getElementById('confFreq').value = "Weekly";
+            toggleFreqOpts();
+            document.getElementById('confTime').value = "";
+            document.getElementById('confStart').value = "";
+            document.getElementById('confEnd').value = "";
+            
+            document.querySelector('input[name="endType"][value="noEnd"]').checked = true;
+            toggleEndInputs();
+            
+            document.querySelectorAll('#toEmails .email-tag').forEach(tag => tag.remove());
+            document.querySelectorAll('#ccEmails .email-tag').forEach(tag => tag.remove());
+            document.querySelectorAll('#bccEmails .email-tag').forEach(tag => tag.remove());
+
+            selectedReports = [];
+            updateSelectedReports(); 
+            
+            updateDynamicEmailContent();
+            
+            document.getElementById('fmtPdf').checked = false;
+            document.getElementById('fmtHtml').checked = false;
+            
+            updateSummary();
+            document.getElementById('configModalOverlay').classList.add('visible');
+        }
+
+        function addEmailTag(containerId, email) {
+            const container = document.getElementById(containerId);
+            const tag = document.createElement('div');
+            tag.className = 'email-tag';
+            const input = container.querySelector('.email-input');
+            tag.innerHTML = `${email} <span onclick="this.parentElement.remove(); updateSummary()">&times;</span>`;
+            container.insertBefore(tag, input);
+        }
+
+        function execCmd(cmd, param = null) { document.execCommand(cmd, false, param); }
+
+        function insertImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image(); img.src = e.target.result; img.style.maxWidth = '100%';
+                    document.getElementById('emailBodyEditor').appendChild(img);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function saveConfiguration() {
+            const scheduleName = isEditMode ? 
+                document.querySelectorAll('table tbody tr')[currentReportIndex].cells[1].innerText.trim() : 
+                `Schedule Report ${Object.keys(reportDataStore).length + 1}`;
+
+            const freq = document.getElementById('confFreq').value;
+            const time = document.getElementById('confTime').value;
+            const start = document.getElementById('confStart').value;
+            
+            const endType = document.querySelector('input[name="endType"]:checked').value;
+            const end = (endType === 'endBy') ? document.getElementById('confEnd').value : "";
+            const noEndDate = (endType === 'noEnd');
+            
+            const subject = document.getElementById('confSubject').value;
+            const body = document.getElementById('emailBodyEditor').innerHTML;
+            const statusVal = document.getElementById('confStatus').checked ? 'Active' : 'Inactive';
+            
+            const toEmails = Array.from(document.querySelectorAll('#toEmails .email-tag')).map(t => t.innerText.replace(' ×', '').trim());
+            const ccEmails = Array.from(document.querySelectorAll('#ccEmails .email-tag')).map(t => t.innerText.replace(' ×', '').trim());
+            const bccEmails = Array.from(document.querySelectorAll('#bccEmails .email-tag')).map(t => t.innerText.replace(' ×', '').trim());
+
+            if (!time || !start || !subject || toEmails.length === 0 || selectedReports.length === 0) {
+                alert('Please fill all required delivery setup fields and select at least one report.');
+                return;
+            }
+            if (endType === 'endBy' && !end) {
+                alert('Please provide an end date.'); return;
+            }
+
+            reportDataStore[scheduleName] = {
+                module: selectedReports[0].module, report: selectedReports.map(r => r.report).join(', '), 
+                freq, time, start, end, noEndDate, subject, body, status: statusVal,
+                to: toEmails, cc: ccEmails, bcc: bccEmails
+            };
+
+            renderMainTable();
+            alert('Configuration saved successfully!');
+            closeConfigModal();
+        }
+
+        function toggleFilterDropdown() {
+            const filter = document.getElementById('inlineFilter');
+            filter.style.display = filter.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function checkAll(groupId, checked) { document.querySelectorAll(`#${groupId} input[type="checkbox"]`).forEach(cb => cb.checked = checked); }
+        function setFilters(show) { document.querySelectorAll('[id$="Filters"] input[type="checkbox"]').forEach(cb => cb.checked = show); }
+        function applyFilters() { toggleFilterDropdown(); }
+        function printReport() { window.print(); }
+
+        flatpickr("#confStart", { dateFormat: "m/d/Y" });
+        flatpickr("#confEnd", { dateFormat: "m/d/Y" });
+    </script>
+</body>
+</html>
